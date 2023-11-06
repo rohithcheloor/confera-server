@@ -94,7 +94,7 @@ io.on("connection", (socket) => {
         if (room.participants) {
           console.log(room.participants);
           const peers = room.participants.map((peer) => {
-            if (!currentParticipants.includes(peer.id)) return peer.id;
+            if (!currentParticipants.includes(peer.id)) return peer;
           });
           currentParticipants.push(...peers);
           socket.to(roomPrefix).emit("get-peers", peers);

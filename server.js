@@ -107,6 +107,7 @@ io.on("connection", (socket) => {
     io.to(payload.userToSignal).emit("user-connected", {
       signal: payload.signal,
       callerID: payload.callerID,
+      peerName: payload.username,
     });
   });
 

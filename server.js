@@ -44,7 +44,6 @@ app.post("/api/room/authenticate", authenticateRoom);
 app.post("/api/join-with-link", authenticateRoomByLink);
 
 io.on("connection", (socket) => {
-  console.log("New User : " + socket.id);
   const activeSocket = activeSockets.find((user) => user.id === socket.id);
 
   if (!activeSocket) {
@@ -62,9 +61,6 @@ io.on("connection", (socket) => {
         user.username = username;
       }
     });
-    console.log(
-      `Room Join Request - RoomID: ${roomId}, ${socket.id}, ${username}`
-    );
     const addRoomParticipants = (roomId, userId, username, password) =>
       secureRoom
         ? addPrivateRoomParticipants(roomId, userId, username, password)
@@ -82,8 +78,6 @@ io.on("connection", (socket) => {
         ?.at(0);
       if (userActiveSocket && userActiveSocket.joined === false) {
         socket.join(roomPrefix);
-        console.log(`User Joined ${roomPrefix}`);
-
         activeSockets.find((user) => {
           if (user.id === socket.id) {
             user.joined = true;
@@ -92,7 +86,6 @@ io.on("connection", (socket) => {
           }
         });
         if (room.participants) {
-          console.log(room.participants);
           const peers = room.participants.map((peer) => {
             if (!currentParticipants.includes(peer.id)) return peer;
           });
@@ -112,7 +105,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("accept", (payload) => {
-    console.log("SENDING ANSWER");
     io.to(payload.callerID).emit("answer", {
       signal: payload.signal,
       callerID: socket.id,
@@ -121,7 +113,6 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     const userStatus = activeSockets.find((user) => user.id === socket.id);
-    console.log(userStatus);
     socket.to(userStatus.roomId).emit("user-disconnected", {
       peerId: userStatus.id,
       peerName: userStatus.username,

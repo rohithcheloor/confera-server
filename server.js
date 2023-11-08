@@ -113,18 +113,23 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     const userStatus = activeSockets.find((user) => user.id === socket.id);
+    let currentParticipants = [];
+    if (userStatus && userStatus.joined) {
+      const user = userStatus;
+      if (user.secureRoom) {
+        currentParticipants = removePrivateRoomParticipants(user.roomId, socket.id);
+      } else {
+        currentParticipants = removePublicRoomParticipants(user.roomId, socket.id);
+      }
+    }
+    if(currentParticipants){
+      const currentParticipantsIDList = currentParticipants.map((participant) => participant.id);
+      socket.to(userStatus.roomId).emit("update-peers", currentParticipantsIDList);
+    }
     socket.to(userStatus.roomId).emit("user-disconnected", {
       peerId: userStatus.id,
       peerName: userStatus.username,
     });
-    if (userStatus && userStatus.joined) {
-      const user = userStatus;
-      if (user.secureRoom) {
-        removePrivateRoomParticipants(user.roomId, socket.id);
-      } else {
-        removePublicRoomParticipants(user.roomId, socket.id);
-      }
-    }
 
     activeSockets.filter((user) => user.id !== socket.id);
   });

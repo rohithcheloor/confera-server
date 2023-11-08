@@ -140,6 +140,9 @@ const removePrivateRoomParticipants = (roomId, userId) => {
     );
     privateRoomStore[roomIndex].participants.splice(participantIndex, 1);
     privateRoomStore[roomIndex].userCount += -1;
+    return privateRoomStore[roomIndex].participants;
+  } else {
+    return null;
   }
 };
 
@@ -156,6 +159,9 @@ const removePublicRoomParticipants = (roomId, userId) => {
     );
     publicRoomStore[roomIndex].participants.splice(participantIndex, 1);
     publicRoomStore[roomIndex].userCount += -1;
+    return publicRoomStore[roomIndex].participants;
+  } else {
+    return null;
   }
 };
 
@@ -219,7 +225,8 @@ const getRoomByJoinLink = (joinLink) => {
   }
   return {
     success: false,
-    message: "Room doesn't exist or the Join Link has expired. Please try again with a new Link.",
+    message:
+      "Room doesn't exist or the Join Link has expired. Please try again with a new Link.",
   };
 };
 

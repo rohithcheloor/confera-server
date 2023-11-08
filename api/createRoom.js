@@ -16,7 +16,6 @@ const createJoinLink = (roomId, password = "confera") => {
     padding: CryptoJS.pad.Pkcs7,
   };
   const joinLink = CryptoJS.AES.encrypt(roomId, password, aesOptions).ciphertext.toString();
-  console.log("JOIN:LINK ::: ", joinLink);
   return joinLink;
 };
 

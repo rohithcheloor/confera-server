@@ -51,6 +51,7 @@ const formatMessage = (username, text) =>{
     time: moment().format('h:mm a')
   };
 };
+
 const botName = "Confera Chat";
 
 io.on("connection", (socket) => {
@@ -104,8 +105,8 @@ io.on("connection", (socket) => {
         }
 
         socket.emit('message','Welcome to chat');
-          const defaultUsename = 'Anonymous';
-          const username = userActiveSocket.username || defaultUsename;
+        const defaultUsename = 'Anonymous';
+        const username = userActiveSocket.username || defaultUsename;
         socket.broadcast.to(room.roomId).emit("message",formatMessage(botName, `${username} has joined the chat`));
       }
     }
@@ -114,7 +115,6 @@ io.on("connection", (socket) => {
     const userActiveSocket = activeSockets
         .filter((user) => user.id === socket.id)
         ?.at(0);
-    console.log(`user: ${userActiveSocket.username}`);
     const defaultUsename = 'Anonymous';
     const username = userActiveSocket.username || defaultUsename;
     io.to(userActiveSocket.roomId).emit("message", formatMessage(username, msg));

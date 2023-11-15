@@ -20,7 +20,6 @@ import moment from "moment";
 const app = express();
 configDotenv();
 
-
 const activeSockets = [];
 
 app.use(cors(config.server.cors));
@@ -37,18 +36,18 @@ const io = new socketIO(server, {
   cors: config.server.cors,
 });
 
-
 app.get("/", (req, res) => res.end("Confera API is running..."));
 app.post("/api/generate-room-id", createRoomId);
 app.post("/api/create-room", createRoom);
 app.post("/api/room/authenticate", authenticateRoom);
 app.post("/api/join-with-link", authenticateRoomByLink);
 
-const formatMessage = (username, text) =>{
+const formatMessage = (username, text, userID) => {
   return {
     username,
     text,
-    time: moment().format('h:mm a')
+    time: moment().format("h:mm a"),
+    userID,
   };
 };
 
@@ -104,20 +103,28 @@ io.on("connection", (socket) => {
           socket.to(roomPrefix).emit("get-peers", peers);
         }
 
-        socket.emit('message','Welcome to chat');
-        const defaultUsename = 'Anonymous';
+        socket.emit("message", "Welcome to chat");
+        const defaultUsename = "Anonymous";
         const username = userActiveSocket.username || defaultUsename;
-        socket.broadcast.to(room.roomId).emit("message",formatMessage(botName, `${username} has joined the chat`));
+        socket.broadcast
+          .to(room.roomId)
+          .emit(
+            "message",
+            formatMessage(botName, `${username} has joined the chat`)
+          );
       }
     }
   });
   socket.on("chatMessage", (msg) => {
     const userActiveSocket = activeSockets
-        .filter((user) => user.id === socket.id)
-        ?.at(0);
-    const defaultUsename = 'Anonymous';
+      .filter((user) => user.id === socket.id)
+      ?.at(0);
+    const defaultUsename = "Anonymous";
     const username = userActiveSocket.username || defaultUsename;
-    io.to(userActiveSocket.roomId).emit("message", formatMessage(username, msg));
+    io.to(userActiveSocket.roomId).emit(
+      "message",
+      formatMessage(username, msg)
+    );
   });
 
   socket.on("offer", (payload) => {
@@ -141,14 +148,24 @@ io.on("connection", (socket) => {
     if (userStatus && userStatus.joined) {
       const user = userStatus;
       if (user.secureRoom) {
-        currentParticipants = removePrivateRoomParticipants(user.roomId, socket.id);
+        currentParticipants = removePrivateRoomParticipants(
+          user.roomId,
+          socket.id
+        );
       } else {
-        currentParticipants = removePublicRoomParticipants(user.roomId, socket.id);
+        currentParticipants = removePublicRoomParticipants(
+          user.roomId,
+          socket.id
+        );
       }
     }
-    if(currentParticipants){
-      const currentParticipantsIDList = currentParticipants.map((participant) => participant.id);
-      socket.to(userStatus.roomId).emit("update-peers", currentParticipantsIDList);
+    if (currentParticipants) {
+      const currentParticipantsIDList = currentParticipants.map(
+        (participant) => participant.id
+      );
+      socket
+        .to(userStatus.roomId)
+        .emit("update-peers", currentParticipantsIDList);
     }
     socket.to(userStatus.roomId).emit("user-disconnected", {
       peerId: userStatus.id,
@@ -156,14 +173,18 @@ io.on("connection", (socket) => {
     });
 
     activeSockets.filter((user) => user.id !== socket.id);
-    
+
     const userActiveSocket = activeSockets
-    .filter((user) => user.id === socket.id)
-    ?.at(0);
+      .filter((user) => user.id === socket.id)
+      ?.at(0);
     if (userActiveSocket) {
       io.to(userActiveSocket.roomId).emit(
         "message",
-        formatMessage(botName, `${userActiveSocket.username} has left the chat`)
+        formatMessage(
+          botName,
+          `${userActiveSocket.username} has left the chat`,
+          socket.id
+        )
       );
     }
   });

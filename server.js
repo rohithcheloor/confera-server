@@ -15,6 +15,7 @@ import { createRoom, createRoomId } from "./api/createRoom.js";
 import { authenticateRoom, authenticateRoomByLink } from "./api/joinRoom.js";
 import config from "./config.js";
 import { configDotenv } from "dotenv";
+import moment from "moment";
 
 const app = express();
 configDotenv();
@@ -42,6 +43,16 @@ app.post("/api/generate-room-id", createRoomId);
 app.post("/api/create-room", createRoom);
 app.post("/api/room/authenticate", authenticateRoom);
 app.post("/api/join-with-link", authenticateRoomByLink);
+
+const formatMessage = (username, text) =>{
+  return {
+    username,
+    text,
+    time: moment().format('h:mm a')
+  };
+};
+
+const botName = "Confera Chat";
 
 io.on("connection", (socket) => {
   const activeSocket = activeSockets.find((user) => user.id === socket.id);
@@ -92,8 +103,21 @@ io.on("connection", (socket) => {
           currentParticipants.push(...peers);
           socket.to(roomPrefix).emit("get-peers", peers);
         }
+
+        socket.emit('message','Welcome to chat');
+        const defaultUsename = 'Anonymous';
+        const username = userActiveSocket.username || defaultUsename;
+        socket.broadcast.to(room.roomId).emit("message",formatMessage(botName, `${username} has joined the chat`));
       }
     }
+  });
+  socket.on("chatMessage", (msg) => {
+    const userActiveSocket = activeSockets
+        .filter((user) => user.id === socket.id)
+        ?.at(0);
+    const defaultUsename = 'Anonymous';
+    const username = userActiveSocket.username || defaultUsename;
+    io.to(userActiveSocket.roomId).emit("message", formatMessage(username, msg));
   });
 
   socket.on("offer", (payload) => {
@@ -132,5 +156,15 @@ io.on("connection", (socket) => {
     });
 
     activeSockets.filter((user) => user.id !== socket.id);
+    
+    const userActiveSocket = activeSockets
+    .filter((user) => user.id === socket.id)
+    ?.at(0);
+    if (userActiveSocket) {
+      io.to(userActiveSocket.roomId).emit(
+        "message",
+        formatMessage(botName, `${userActiveSocket.username} has left the chat`)
+      );
+    }
   });
 });

@@ -43,11 +43,12 @@ app.post("/api/room/authenticate", authenticateRoom);
 app.post("/api/join-with-link", authenticateRoomByLink);
 
 const formatMessage = (username, text, userID) => {
+  console.log("User :", userID);
   return {
     username,
     text,
     time: moment().format("h:mm a"),
-    userID,
+    userId: userID,
   };
 };
 
@@ -110,7 +111,7 @@ io.on("connection", (socket) => {
           .to(room.roomId)
           .emit(
             "message",
-            formatMessage(botName, `${username} has joined the chat`)
+            formatMessage(botName, `${username} has joined the chat`, userActiveSocket.id)
           );
       }
     }
@@ -121,9 +122,10 @@ io.on("connection", (socket) => {
       ?.at(0);
     const defaultUsename = "Anonymous";
     const username = userActiveSocket.username || defaultUsename;
+    console.log("Received Chat from :" + userActiveSocket.id);
     io.to(userActiveSocket.roomId).emit(
       "message",
-      formatMessage(username, msg)
+      formatMessage(username, msg, userActiveSocket.id)
     );
   });
 
@@ -183,7 +185,7 @@ io.on("connection", (socket) => {
         formatMessage(
           botName,
           `${userActiveSocket.username} has left the chat`,
-          socket.id
+          userActiveSocket.id
         )
       );
     }

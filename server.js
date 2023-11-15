@@ -43,7 +43,6 @@ app.post("/api/room/authenticate", authenticateRoom);
 app.post("/api/join-with-link", authenticateRoomByLink);
 
 const formatMessage = (username, text, userID) => {
-  console.log("User :", userID);
   return {
     username,
     text,
@@ -122,7 +121,6 @@ io.on("connection", (socket) => {
       ?.at(0);
     const defaultUsename = "Anonymous";
     const username = userActiveSocket.username || defaultUsename;
-    console.log("Received Chat from :" + userActiveSocket.id);
     io.to(userActiveSocket.roomId).emit(
       "message",
       formatMessage(username, msg, userActiveSocket.id)

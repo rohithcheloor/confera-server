@@ -102,16 +102,6 @@ io.on("connection", (socket) => {
           currentParticipants.push(...peers);
           socket.to(roomPrefix).emit("get-peers", peers);
         }
-
-        socket.emit("message", "Welcome to chat");
-        const defaultUsename = "Anonymous";
-        const username = userActiveSocket.username || defaultUsename;
-        socket.broadcast
-          .to(room.roomId)
-          .emit(
-            "message",
-            formatMessage(botName, `${username} has joined the chat`, userActiveSocket.id)
-          );
       }
     }
   });

@@ -163,19 +163,5 @@ io.on("connection", (socket) => {
     });
 
     activeSockets.filter((user) => user.id !== socket.id);
-
-    const userActiveSocket = activeSockets
-      .filter((user) => user.id === socket.id)
-      ?.at(0);
-    if (userActiveSocket) {
-      io.to(userActiveSocket.roomId).emit(
-        "message",
-        formatMessage(
-          botName,
-          `${userActiveSocket.username} has left the chat`,
-          userActiveSocket.id
-        )
-      );
-    }
   });
 });

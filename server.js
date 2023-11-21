@@ -127,6 +127,21 @@ io.on("connection", (socket) => {
     );
   });
 
+  socket.on('emoji', ( emoji ) => {
+    const emoji_received = emoji.emoji;
+    const userActiveSocket = activeSockets
+    .filter((user) => user.id === socket.id)
+    ?.at(0); 
+    const defaultUsename = "Anonymous";
+    const username = userActiveSocket.username || defaultUsename;   
+    if (userActiveSocket && userActiveSocket.roomId) {
+      io.to(userActiveSocket.roomId).emit('new-emoji', {
+        userId: userActiveSocket.id,
+        username: username,
+        emoji,
+      });
+    }
+  });
   socket.on("offer", (payload) => {
     io.to(payload.userToSignal).emit("user-connected", {
       signal: payload.signal,

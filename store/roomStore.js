@@ -206,6 +206,7 @@ const getRoomByJoinLink = (joinLink) => {
     return {
       success: true,
       roomId: privateRoomFound[0].roomId,
+      password: privateRoomFound[0].password,
       joinLink: joinLink,
       isPrivateRoom: true,
       message: "Authenticated Successfully",

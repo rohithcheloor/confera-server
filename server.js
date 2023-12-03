@@ -78,7 +78,7 @@ io.on("connection", (socket) => {
 
     const room = addRoomParticipants(roomId, socket.id, username, password);
     const currentParticipants = [];
-    if (!room.roomId) {
+    if (!room || !room.roomId) {
       socket.emit("login-error", room);
     } else {
       const roomPrefix = secureRoom ? `${room.roomId}-SEC` : room.roomId;

@@ -111,7 +111,8 @@ io.on("connection", (socket) => {
       ?.at(0);
     const defaultUsename = "Anonymous";
     const username = userActiveSocket.username || defaultUsename;
-    io.to(userActiveSocket.roomId).emit(
+    const roomId = userActiveSocket.secureRoom ? `${userActiveSocket.roomId}-SEC` : userActiveSocket.roomId;
+    io.to(roomId).emit(
       "message",
       formatMessage(username, msg, userActiveSocket.id)
     );
@@ -125,7 +126,8 @@ io.on("connection", (socket) => {
     const defaultUsename = "Anonymous";
     const username = userActiveSocket.username || defaultUsename;   
     if (userActiveSocket && userActiveSocket.roomId) {
-      io.to(userActiveSocket.roomId).emit('new-emoji', {
+      const roomId = userActiveSocket.secureRoom ? `${userActiveSocket.roomId}-SEC` : userActiveSocket.roomId;
+      io.to(roomId).emit('new-emoji', {
         userId: userActiveSocket.id,
         username: username,
         emoji,

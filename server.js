@@ -4,6 +4,8 @@
 import express from "express";
 import cors from "cors";
 import compression from "compression";
+import multer from "multer";
+import azure from "azure-storage";
 import {
   addPrivateRoomParticipants,
   addPublicRoomParticipants,
@@ -36,6 +38,128 @@ const io = new socketIO(server, {
   cors: config.server.cors,
 });
 
+// Azure Storage for the video recordings
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+const blobService = azure.createBlobService(
+  process.env.YOUR_AZURE_STORAGE_ACCOUNT,
+  process.env.YOUR_AZURE_STORAGE_KEY
+);
+
+const containerName = "confera-recording";
+// Example endpoint to get video links by room ID
+app.get("/api/videos/:roomId", (req, res) => {
+  const roomId = req.params.roomId;
+
+  // List blobs in the container with metadata included
+  blobService.listBlobsSegmented(
+    containerName,
+    null,
+    { include: "metadata" },
+    (err, result) => {
+      if (err) {
+        console.error("Error listing blobs:", err);
+        return res.status(500).send("Error listing blobs");
+      }
+
+      const filteredVideoLinks = result.entries
+        .filter((blob) => {
+          const blobRoomId = blob.metadata && blob.metadata.roomid;
+          console.log("Blob Room ID:", blobRoomId);
+          return blobRoomId === roomId;
+        })
+        .map((blob) => {
+          const sasToken = blobService.generateSharedAccessSignature(
+            containerName,
+            blob.name,
+            {
+              AccessPolicy: {
+                Permissions: azure.BlobUtilities.SharedAccessPermissions.READ,
+                Expiry: azure.date.minutesFromNow(10), // Set the expiration time for the link
+              },
+            }
+          );
+
+          return blobService.getUrl(containerName, blob.name, sasToken);
+        });
+
+      console.log("Filtered Video Links:", filteredVideoLinks);
+
+      res.json({ videoLinks: filteredVideoLinks });
+    }
+  );
+});
+
+const createContainerIfNotExists = () => {
+  return new Promise((resolve, reject) => {
+    blobService.createContainerIfNotExists(
+      containerName,
+      { publicAccessLevel: "blob" },
+      (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      }
+    );
+  });
+};
+
+// Example endpoint to upload a video with room ID
+app.post("/api/upload/:roomId", upload.single("video"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
+    }
+
+    await createContainerIfNotExists();
+
+    const blobName = req.file.originalname;
+    const roomId = req.params.roomId;
+    const stream = req.file.buffer;
+
+    // Upload the video to Azure Blob Storage
+    blobService.createBlockBlobFromText(
+      containerName,
+      blobName,
+      stream,
+      { contentSettings: { contentType: "video/mp4" } },
+      (error) => {
+        if (error) {
+          console.error(error);
+          return res
+            .status(500)
+            .send("Error uploading video to Azure Blob Storage");
+        }
+
+        // Set metadata to include room ID
+        blobService.setBlobMetadata(
+          containerName,
+          blobName,
+          { roomId },
+          (metaError) => {
+            if (metaError) {
+              console.error(metaError);
+              return res
+                .status(500)
+                .send("Error setting metadata for the video");
+            }
+
+            return res.status(200).send({
+              message: "Video uploaded successfully",
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Error uploading video to Azure Blob Storage");
+  }
+});
 app.get("/", (req, res) => res.end("Confera API is running..."));
 app.post("/api/generate-room-id", createRoomId);
 app.post("/api/create-room", createRoom);
@@ -117,15 +241,15 @@ io.on("connection", (socket) => {
     );
   });
 
-  socket.on('emoji', ( emoji ) => {
+  socket.on("emoji", (emoji) => {
     const emoji_received = emoji.emoji;
     const userActiveSocket = activeSockets
-    .filter((user) => user.id === socket.id)
-    ?.at(0); 
+      .filter((user) => user.id === socket.id)
+      ?.at(0);
     const defaultUsename = "Anonymous";
-    const username = userActiveSocket.username || defaultUsename;   
+    const username = userActiveSocket.username || defaultUsename;
     if (userActiveSocket && userActiveSocket.roomId) {
-      io.to(userActiveSocket.roomId).emit('new-emoji', {
+      io.to(userActiveSocket.roomId).emit("new-emoji", {
         userId: userActiveSocket.id,
         username: username,
         emoji,
